@@ -168,8 +168,8 @@
 		console.log(obj);
 		obj.scale.set(2, 2, 2);
 		//obj.children[0].scale.set(2,2,2);//网格模型缩放
-		//var axis = new THREE.Vector3(1,0,0);//向量axis
-		//obj.rotateOnAxis(axis,-Math.PI/4);//绕axis轴旋转π/8
+		var axis = new THREE.Vector3(0,1,0);//向量axis
+		obj.rotateOnAxis(axis,-Math.PI/2);//绕axis轴旋转π/8
 		arWorldRoot.add(obj);//返回的组对象插入场景中
 	  })
 	})
