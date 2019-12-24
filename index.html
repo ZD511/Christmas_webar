@@ -161,21 +161,22 @@
 	var object
 	var loader = new THREE.OBJLoader();
 	// 没有材质文件，系统自动设置Phong网格材质
-	loader.load('models/Heart.obj',function (obj) {
+	loader.load('models/materials.mtl',function (obj) {
+	var OBJLoader = new THREE.OBJLoader();//obj加载器
+	var MTLLoader = new THREE.MTLLoader();//材质文件加载器
+	MTLLoader.load('models/box.mtl', function(materials) {
+	  // 返回一个包含材质的对象MaterialCreator
+	  console.log(materials);
+	  //obj的模型会和MaterialCreator包含的材质对应起来
+	  OBJLoader.setMaterials(materials);
+	  OBJLoader.load('models/model.obj', function(obj) {
+		console.log(obj);
 		obj.scale.set(0.12, 0.12, 0.12);
 		obj.children[0].scale.set(0.12,0.12,0.12);//网格模型缩放
-		var axis = new THREE.Vector3(1,0,0);//向量axis
-		obj.rotateOnAxis(axis,-Math.PI/4);//绕axis轴旋转π/8
-	  // 控制台查看返回结构：包含一个网格模型Mesh的组Group
-	  console.log(obj);
-	  // 查看加载器生成的材质对象：MeshPhongMaterial
-	  console.log(obj.children[0].material);
-	arWorldRoot.add(obj);
-	// 加载后的一些编辑操作
-	  //obj.children[0].rotation.x+=Math.PI/2;	  
-	  //obj.children[0].scale.set(0.05,0.05,0.05);//网格模型缩放	  
-	  //obj.children[0].geometry.center();//网格模型的几何体居中
-	  obj.children[0].material.color.set(0xff0000);//设置材质颜色		
+		//var axis = new THREE.Vector3(1,0,0);//向量axis
+		//obj.rotateOnAxis(axis,-Math.PI/4);//绕axis轴旋转π/8
+		arWorldRoot.add(obj);//返回的组对象插入场景中
+	  })
 	})
 	
 	//var loader = new THREE.ColladaLoader();
