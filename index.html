@@ -156,12 +156,6 @@
 	//////////////////////////////////////////////////////////////////////////////////
 	// var arWorldRoot = markerRoot
 	var arWorldRoot = smoothedRoot	
-	//var axes=new THREE.AxisHelper();
-	//arWorldRoot.add( axes );
-	var object
-	var loader = new THREE.OBJLoader();
-	// 没有材质文件，系统自动设置Phong网格材质
-	loader.load('models/materials.mtl',function (obj) {
 	var OBJLoader = new THREE.OBJLoader();//obj加载器
 	var MTLLoader = new THREE.MTLLoader();//材质文件加载器
 	MTLLoader.load('models/box.mtl', function(materials) {
