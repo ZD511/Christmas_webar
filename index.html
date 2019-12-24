@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<meta name='viewport' content='width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0'>
+<!-- three.js library -->
+<script src='three.js'></script>
+<script src='stats.min.js'></script>
+<script src='ColladaLoader.js'></script>
+<script src='Detector.js'></script>
+<script src="DDSLoader.js"></script>
+<script src="MTLLoader.js"></script>
+<script src="OBJLoader.js"></script>
+<!-- jsartookit -->
+<script src='artoolkit.min.js'></script>
+<script src='artoolkit.api.js'></script>
+<!-- include threex.artoolkit -->
+<script src='threex-artoolkitsource.js'></script>
+<script src='threex-artoolkitcontext.js'></script>
+<script src='threex-artoolkitprofile.js'></script>
+<script src='threex-arbasecontrols.js'></script>
+<script src='threex-armarkercontrols.js'></script>
+<script src='threex-arsmoothedcontrols.js'></script>
+
+<body style='margin : 0px; overflow: hidden; font-family: Monospace;'><script>
+	//////////////////////////////////////////////////////////////////////////////////
+	//		Init
+	//////////////////////////////////////////////////////////////////////////////////
+
+	// init renderer
+	var renderer	= new THREE.WebGLRenderer({
+		// antialias	: true,
+		alpha: true
+	});
+	renderer.setClearColor(new THREE.Color('lightgrey'), 0)
+	// renderer.setPixelRatio( 2 );
+	renderer.setSize( window.innerWidth, window.innerHeight );
+	renderer.domElement.style.position = 'absolute'
+	renderer.domElement.style.top = '0px'
+	renderer.domElement.style.left = '0px'
+	document.body.appendChild( renderer.domElement );
+
+	// array of functions for the rendering loop
+	var onRenderFcts= [];
+
+	// init scene and camera
+	var scene	= new THREE.Scene();
+
+	var ambient = new THREE.AmbientLight( 0x666666 );
+	scene.add( ambient );
+
+	var directionalLight = new THREE.DirectionalLight( 0x887766 );
+	directionalLight.position.set( -1, 1, 1 ).normalize();
+	scene.add( directionalLight );
+
+	//////////////////////////////////////////////////////////////////////////////////
+	//		Initialize a basic camera
+	//////////////////////////////////////////////////////////////////////////////////
+
+	// Create a camera
+	var camera = new THREE.Camera();
+	scene.add(camera);
+
+	////////////////////////////////////////////////////////////////////////////////
+	//          handle arToolkitSource
+	////////////////////////////////////////////////////////////////////////////////
+
+	var arToolkitSource = new THREEx.ArToolkitSource({
+		// to read from the webcam
+		sourceType : 'webcam',
+	})
+
+	arToolkitSource.init(function onReady(){
+		onResize()
+	})
+
+	// handle resize
+	window.addEventListener('resize', function(){
+		onResize()
+	})
+	function onResize(){
+		arToolkitSource.onResizeElement()
+		arToolkitSource.copyElementSizeTo(renderer.domElement)
+		if( arToolkitContext.arController !== null ){
+			arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas)
+		}
+	}
+
+	////////////////////////////////////////////////////////////////////////////////
+	//          initialize arToolkitContext
+	////////////////////////////////////////////////////////////////////////////////
+
+	// create atToolkitContext
+	var arToolkitContext = new THREEx.ArToolkitContext({
+		cameraParametersUrl: 'data/camera_para.dat',
+		// debug: true,
+		// detectionMode: 'mono_and_matrix',
+		detectionMode: 'mono',
+		// detectionMode: 'color_and_matrix',
+		// matrixCodeType: '3x3',
+
+		canvasWidth: 80*3,
+		canvasHeight: 60*3,
+
+		maxDetectionRate: 30,
+	})
+	// initialize it
+	arToolkitContext.init(function onCompleted(){
+		// copy projection matrix to camera
+		camera.projectionMatrix.copy( arToolkitContext.getProjectionMatrix() );
+	})
+
+	// update artoolkit on every frame
+	onRenderFcts.push(function(){
+		if( arToolkitSource.ready === false )	return
+
+		arToolkitContext.update( arToolkitSource.domElement )
+	})
+
+
+	////////////////////////////////////////////////////////////////////////////////
+	//          Create a ArMarkerControls
+	////////////////////////////////////////////////////////////////////////////////
+
+	var markerRoot = new THREE.Group
+	scene.add(markerRoot)
+	var markerControls = new THREEx.ArMarkerControls(arToolkitContext, markerRoot, {
+		// type: 'barcode',
+		// barcodeValue: 5,
+
+		type : 'pattern',
+		patternUrl : 'pattern-files/pattern-qian.patt',
+	})
+
+
+	// build a smoothedControls
+	var smoothedRoot = new THREE.Group()
+	scene.add(smoothedRoot)
+	var smoothedControls = new THREEx.ArSmoothedControls(smoothedRoot, {
+		lerpPosition: 0.4,
+		lerpQuaternion: 0.3,
+		lerpScale: 1,
+		// minVisibleDelay: 1,
+		// minUnvisibleDelay: 1,
+	})
+	onRenderFcts.push(function(delta){
+		smoothedControls.update(markerRoot)
+	})
+
+	smoothedControls.addEventListener('becameVisible', function(){
+		console.log('becameVisible event notified')
+	})
+	// smoothedControls.addEventListener('becameUnVisible', function(){
+	// 	console.log('becameUnVisible event notified')
+	// })
+
+	//////////////////////////////////////////////////////////////////////////////////
+	//		add an object in the scene
+	//////////////////////////////////////////////////////////////////////////////////
+	// var arWorldRoot = markerRoot
+	var arWorldRoot = smoothedRoot	
+	//var axes=new THREE.AxisHelper();
+	//arWorldRoot.add( axes );
+	var object
+	var loader = new THREE.OBJLoader();
+	// 没有材质文件，系统自动设置Phong网格材质
+	loader.load('models/Heart.obj',function (obj) {
+		obj.scale.set(0.12, 0.12, 0.12);
+		obj.children[0].scale.set(0.12,0.12,0.12);//网格模型缩放
+		var axis = new THREE.Vector3(1,0,0);//向量axis
+		obj.rotateOnAxis(axis,-Math.PI/4);//绕axis轴旋转π/8
+	  // 控制台查看返回结构：包含一个网格模型Mesh的组Group
+	  console.log(obj);
+	  // 查看加载器生成的材质对象：MeshPhongMaterial
+	  console.log(obj.children[0].material);
+	arWorldRoot.add(obj);
+	// 加载后的一些编辑操作
+	  //obj.children[0].rotation.x+=Math.PI/2;	  
+	  //obj.children[0].scale.set(0.05,0.05,0.05);//网格模型缩放	  
+	  //obj.children[0].geometry.center();//网格模型的几何体居中
+	  obj.children[0].material.color.set(0xff0000);//设置材质颜色		
+	})
+	
+	//var loader = new THREE.ColladaLoader();
+	//var mesh;
+	//loader.load("models/heart.dae", function (result) {
+	//    mesh = result.scene.children[0].clone();
+	//    arWorldRoot.add(mesh);
+	//});
+	
+	//onRenderFcts.push(function(delta){
+	//	obj.rotation.x += delta * Math.PI
+	//})
+	
+	//////////////////////////////////////////////////////////////////////////////////
+	//		render the whole thing on the page
+	//////////////////////////////////////////////////////////////////////////////////
+	var stats = new Stats();
+	document.body.appendChild( stats.dom );
+	// render the scene
+	onRenderFcts.push(function(){
+		renderer.render( scene, camera );
+		stats.update();
+	})
+
+	// run the rendering loop
+	var lastTimeMsec= null
+	requestAnimationFrame(function animate(nowMsec){
+		// keep looping
+		requestAnimationFrame( animate );
+		// measure time
+		lastTimeMsec	= lastTimeMsec || nowMsec-1000/60
+		var deltaMsec	= Math.min(200, nowMsec - lastTimeMsec)
+		lastTimeMsec	= nowMsec
+		// call each update function
+		onRenderFcts.forEach(function(onRenderFct){
+			onRenderFct(deltaMsec/1000, nowMsec/1000)
+		})
+	})
+</script></body>
